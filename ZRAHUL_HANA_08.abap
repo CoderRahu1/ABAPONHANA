@@ -113,6 +113,7 @@ cl_demo_output=>display_data(
 ).
 
 catch cx_sql_exception into DATA(lo_ex).
+            WRITE :/ LO_EX->get_text(  ).
 ENDTRY.
 
 
