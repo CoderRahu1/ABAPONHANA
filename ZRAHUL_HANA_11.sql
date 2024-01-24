@@ -24,8 +24,8 @@ AS BEGIN
 --DECLARE Y INTEGER;
 --DECLARE Z INTEGER;
 
-X = 20;
-Y = 30;
+--X = 20;
+--Y = 30;
 
 Z := :X + :Y;
 
