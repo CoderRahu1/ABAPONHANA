@@ -35,3 +35,8 @@ Z := :X + :Y;
 
 
 END;
+
+-- CALLING THE PROCEDURE
+--CALL JANADDNUM(?,?,?)
+
+
