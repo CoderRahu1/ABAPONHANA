@@ -17,12 +17,14 @@ AS BEGIN
 -- DECLARING VARIBLE I FOR USING IN THE FOR LOOP.
 DECLARE I INTEGER;
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- HANDLING TABLE RECREATION ERROR.
 -- GENERIC HANDLER CODE FOR ANY KIND OF ERROR.
 
 DECLARE EXIT HANDLER FOR SQL_EXCEPTION;
 
 SELECT 'INTERNAL ERROR OCCURED. CONTACT DEVELOPER OR BASIS TEAM' AS ERROR FROM DUMMY;                  -- PROVIDING MESSAGE TO USERS
-
+----------------------------------------------------------------------------------------------------------------------------------------------
 -- CREATING COLUMN NAME FOR THE TABLE
 CREATE COLUMN TABLE EMP(EMPID INTEGER, EMPNAME VARCHAR(40), PRIMARY KEY(EMPID));
 
