@@ -22,6 +22,8 @@ DECLARE LV_CLIENT VARCHAR(3);
 
 AS BEGIN
 
+-----------------------------------------------------------------------------------------------------------------------------------------
+
 -- STEP 1: READ THE CUSTOMIZING,  ALSO READING THE CLIENT VALUE.
 
 SELECT MANDT, MAX_OPEN_DAYS, MAX_AMOUNT, CURRENY_CODE,
@@ -29,14 +31,56 @@ CURRENT_DATE INTO LV_CLIENT, LV_MAX_DAYS, LV_GROSS_AMOUNT,
 LV_CURRENCY, LV_TODAY                           -- WE CAN CREATE MUTIPLE PARAMS AND STORE VALUES 
 FROM ZDP_CUST WHERE USRID = (SELECT UCASE(SESSION_CONTEXT('APPLICATIONUSER')) FROM DUMMY );
 
+-----------------------------------------------------------------------------------------------------------------------------------------
+
 -- STEP 2 : CALCULATING OPENDAYS AND CONVERTING TIME STAMPS
-SELECT FLOOR(SECONDS_BETWEEN(
-			 TO_TIMESTAMP(LEFT(CHANGED_AT,14),'YYYYMMDDHHMISS'),                             -- X VALUE
-			 TO_TIMESTAMP(LOCALTOUTC(NOW(), 'CET')))                                         -- Y VALUE AND CET(CENTRAL EUROPEAN TIME)
-			 / 24 * 60 * 60 ,0) 
-			 AS OPEN_DAYS,
+-- FIRST QUERY FOR CALCULATING DAYS DIFFERENCE
+LT_DAYS = SELECT SECONDS_BETWEEN(																 -- THIS IS FINAL RESULT Z
+			 TO_TIMESTAMP(LEFT(HEAD.CHANGED_AT,14),'YYYYMMDDHHMISS'),                        -- X VALUE
+			 TO_TIMESTAMP(LOCALTOUTC(NOW(), 'CET')))                                        -- Y VALUE AND CET(CENTRAL EUROPEAN TIME)
+			 / ( 24 * 60 * 60 ) 
+			 AS OPEN_DAYS,                                                                   -- FIRST COLUMM
+			 BP_ID FROM SNWD_BPA AS BPA INNER JOIN
+			 SNWD_SO_INV_HEAD AS HEAD ON													 -- SPECIFYING JOIN CONDITION
+			 BPA.NODE_KEY = HEAD.BUYER_GUID
+			 WHERE HEAD.PAYMENT_STATUS = '';
 			 
-			 
-			 
-			 
+			 -- NOTE - CAN FIRE SELECT ON INTERNAL TABLE LT_DAYS.
+
+-- NOW CALCULATING AVERAGE DAYS 
+
+LT_AVG_DATS = SELECT AVG(OPEN_DAYS) AS OPEN_DAYS, BP_ID FROM :LT_DAYS GROUP BY BP_ID;
+-----------------------------------------------------------------------------------------------------------------------------------------
+-- STEP 3 : CALCULATE THE TOTAL GROSS_AMOUNT PENDING IN COMMON CURRENCY.
+-- GETTING TOTAL PAYMENT STATUS.
+
+LT_ALL_AMOUNT = SELECT BP_ID, SUM(ITEM.GROSS_AMOUNT) AS GROSS_AMOUNT,
+				ITEM.CURRENCY_CODE FROM SNWD_SO_INV_ITEM AS ITEM INNER JOIN
+				SNWD_SO_INV_HEAD AS HEAD ON
+				ITEM.PARENT_KEY = HEAD.NODE_KEY
+				INNER JOIN SNWD_BPA AS BPA ON
+				BPA.NODE_KEY = HEAD.BUYER_GUID
+				WHERE HEAD.PAYMENT_STATUS = ''
+				GROUP BY BP_ID,ITEM.CURRENCY_CODE;                              -- WE ARE GOING TO GET TOTAL AMOUNT FOR CURRENCY CODE.
+
+
+-- CURRENCY CONVERSION
+
+LT_CONV_AMOUNT
+
+
+
+
+
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+
+ETAB = SELECT BPA.BP_ID, BPA.COMPANY_NAME, DATS.OPEN_DAYS AS OPEN_DAYS,
+	   5000000 AS GROSS_AMOUNT, 'EUR' AS CURRENCY_CODE,
+	   '' AS TAGGING FROM SNWD_BPA AS BPA INNER JOIN :LT_AVG_DATS AS DATS
+	   ON BPA.BP_ID = DATS.BP_ID;
 
