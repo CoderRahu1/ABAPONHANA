@@ -1,3 +1,9 @@
+-----------------------------------------------------------------------------------------------------------------------------------------
+-- TOPIC - 1) COMPLETE OIA SENARIO USING SQL SCRIPT AND HAVING LOWEST PROCESSING TIME OF 747 MICRO SECONDS.
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+
 CREATE PROCEDURE GETOIA(
 OUT ETAB TABLE( BP_ID VARCHAR(40),
 			    COMPANY_NAME VARCHAR(80),
@@ -69,23 +75,56 @@ LT_ALL_AMOUNT = SELECT BP_ID, SUM(ITEM.GROSS_AMOUNT) AS GROSS_AMOUNT,
 LT_CONV_AMOUNT = CE_CONVERSION(:LT_ALL_AMOUNT, [
 					FAMILY = 'CURRENCY',
 					METHOD = 'ERP',
-					ERROR_HANDLING = 'KEEP_UNCOVERTED'
+					CLIENT = :LV_CLIENT,
+					ERROR_HANDLING = 'KEEP_UNCOVERTED',
+					STEPS = 'SHIFT,CONVERT,SHIFT_BACK',
+					SOURCE_UNIT_COLUMN = 'CURRENCY_CODE',
+					TARGET_UNIT = :LV_CURRENCY,                                 -- TARGET CURRENCY SET BY NEED (ZDP_CUST) CUSTOMIZING TABLE.                           
+					REFERENCE_DATE = :LV_TODAY,
+					OUTPUT_UNIT_COLUMN = 'CONV_CURR_CODE'
 				 ],[GROSS_AMOUNT])                                              -- GROSS_AMOUNT IS THE COLUMN WHICH IT NEEDS FOR CONVERT AND IT WILL PUT THAT
 																				-- DATA BACK INTO THE COLUMN ITSELF.
 
 
 
-
-
-
-
-
+LT_AMOUNT = SELECT BP_ID, :LV_CURRENCY AS CURRENCY_CODE, 
+			SUM(GROSS_AMOUNT) AS GROSS_AMOUNT 
+			FROM :LT_CONV_AMOUNT
+			GROUP BY BP_ID, CONV_CURR_CODE;
+						
+-----------------------------------------------------------------------------------------------------------------------------------------
+-- NOTE - WILL HAVE TO HARDCODE CURRENY CODE(:LV_CURRENCY IN LT_AMOUNT) SINCE NO EXCHANGE RATES MAINTAINED SO HERE USING VARIBLE AS CURRENCY CODE.
 
 -----------------------------------------------------------------------------------------------------------------------------------------
 
+-----------------------------------------------------------------------------------------------------------------------------------------
+-- STEP 4 : DOING THE TAGGING FOR OPEN DAYS AND GROSS AMOUNT.
 
-ETAB = SELECT BPA.BP_ID, BPA.COMPANY_NAME, DATS.OPEN_DAYS AS OPEN_DAYS,
-	   5000000 AS GROSS_AMOUNT, 'EUR' AS CURRENCY_CODE,
+
+
+
+LT_RESULT = SELECT BPA.BP_ID, BPA.COMPANY_NAME, DATS.OPEN_DAYS AS OPEN_DAYS,
+	   AMT.GROSS_AMOUNT AS GROSS_AMOUNT, AMT.CURRENCY_CODE AS CURRENCY_CODE,
 	   '' AS TAGGING FROM SNWD_BPA AS BPA INNER JOIN :LT_AVG_DATS AS DATS
-	   ON BPA.BP_ID = DATS.BP_ID;
+	   ON BPA.BP_ID = DATS.BP_ID
+	   INNER JOIN :LT_AMOUNT AS AMT ON BPA.BP_ID = AMT.BP_ID;
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+ETAB = SELECT BP_ID, COMPANY_NAME, OPEN_DAYS, GROSS_AMOUNT, CURRENCY_CODE,
+			CASE WHEN GROSS_AMOUNT > LV_GROSS_AMOUNT AND OPEN_DAYS > LV_MAX_DAYS
+				THEN 'X' ELSE '' END AS TAGGING
+				FROM :LT_RESULT;
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+-- O/P - THUS TAGGING THE CUSTOMERS WITH HIGHEST AMOUNT AND HIGHEST NUMBER OF OPEN DAYS.
+
+
+
+				
+
+
+
+
 
